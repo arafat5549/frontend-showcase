@@ -29,7 +29,7 @@ export function VariantA() {
       <Scene
         className="va-scene"
         autoRotate
-        bloomStrength={0.85}
+        bloomStrength={0.5}
         showLabels
         showFlyLines
         showParticles

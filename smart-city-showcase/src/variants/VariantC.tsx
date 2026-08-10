@@ -21,7 +21,7 @@ export function VariantC() {
         <Scene
           className="vc-scene"
           autoRotate={false}
-          bloomStrength={0.35}
+          bloomStrength={0.25}
           showLabels
           showGrid
           showFlyLines={false}

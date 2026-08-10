@@ -18,7 +18,7 @@ export function VariantB() {
       <Scene
         className="vb-scene"
         autoRotate
-        bloomStrength={1.05}
+        bloomStrength={0.65}
         showLabels
         showFlyLines
         showParticles

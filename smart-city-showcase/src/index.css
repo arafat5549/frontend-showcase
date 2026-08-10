@@ -1,5 +1,12 @@
 /**
  * 原型用途：智慧城市数据大屏 —— 全局样式（含三个变体的视觉主题变量）。
+ *
+ * 色板设计意图（v2 降亮，统一"深夜墨蓝"色系）：
+ *  - 背景：墨蓝黑底（#050b16 量级），三变体同基调、各自微调明度；
+ *  - 区块/主色：暗青蓝（VariantA #1ba8c4 / VariantB #3a9cbc / VariantC 金 #c99b45 配深蓝 #3d63b8）；
+ *  - 点缀：金色 #e3ad52 只用于选中态与少数 KPI，蓝绿仅作二级辅助；
+ *  - 文字：主 #d8e7f0、次 #7d93a6 灰蓝阶，对比清晰但不过曝。
+ * 所有面板底色加深、边框亮度下调，标签/角标同步降亮。
  */
 
 * {
@@ -17,8 +24,8 @@ body,
 
 body {
   font-family: 'PingFang SC', 'Microsoft YaHei', 'HarmonicOS Sans SC', 'Noto Sans SC', 'Segoe UI', sans-serif;
-  background: #040a14;
-  color: #e6f7ff;
+  background: #050b16;
+  color: #d8e7f0;
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
 }
@@ -47,7 +54,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #7dd3fc;
+  color: #3a94b2;
   font-size: 14px;
   letter-spacing: 2px;
   pointer-events: none;
@@ -59,10 +66,10 @@ body {
   left: 50%;
   transform: translateX(-50%);
   font-size: 11px;
-  color: #f5c97a;
-  background: rgba(20, 16, 4, 0.7);
+  color: #d9b06a;
+  background: rgba(16, 13, 6, 0.7);
   padding: 4px 10px;
-  border: 1px solid rgba(245, 201, 122, 0.4);
+  border: 1px solid rgba(217, 176, 106, 0.35);
   border-radius: 4px;
   z-index: 5;
   white-space: nowrap;
@@ -172,14 +179,14 @@ body {
   font-size: 11px;
 }
 
-.stat-delta.up { color: #37e0a0; }
-.stat-delta.down { color: #ff6b6b; }
+.stat-delta.up { color: #2fbc8a; }
+.stat-delta.down { color: #e0776f; }
 .stat-note { color: var(--text-dim); }
 
-.accent-cyan { --sc-accent: #22d3ee; }
-.accent-gold { --sc-accent: #e8b54d; }
-.accent-blue { --sc-accent: #4c7dff; }
-.accent-green { --sc-accent: #37e0a0; }
+.accent-cyan { --sc-accent: #1ba8c4; }
+.accent-gold { --sc-accent: #cda24a; }
+.accent-blue { --sc-accent: #3d63b8; }
+.accent-green { --sc-accent: #2fbc8a; }
 
 /* ---------- ECharts ---------- */
 .echart {
@@ -194,22 +201,22 @@ body {
 
 /* ---------- Variant A · 经典环绕大屏 ---------- */
 .va-root {
-  --bg0: #030b1a;
-  --bg1: #071a30;
-  --accent: #22d3ee;
-  --accent2: #38bdf8;
-  --panel-bg: rgba(6, 20, 40, 0.78);
-  --panel-border: rgba(56, 189, 248, 0.26);
-  --text: #e6f7ff;
-  --text-dim: #8fb8d9;
-  background: radial-gradient(1200px 700px at 50% 38%, #0a2a4a 0%, #061627 45%, #030a18 100%);
+  --bg0: #040b16;
+  --bg1: #061224;
+  --accent: #1ba8c4;
+  --accent2: #2a7fae;
+  --panel-bg: rgba(7, 15, 28, 0.74);
+  --panel-border: rgba(70, 140, 175, 0.2);
+  --text: #d8e7f0;
+  --text-dim: #7d93a6;
+  background: radial-gradient(1200px 700px at 50% 38%, #081c33 0%, #040d1a 45%, #02060c 100%);
 }
 
 .va-root::before {
   content: '';
   position: absolute;
   inset: 0;
-  background: repeating-linear-gradient(0deg, rgba(56, 189, 248, 0.03) 0 1px, transparent 1px 4px);
+  background: repeating-linear-gradient(0deg, rgba(80, 150, 190, 0.022) 0 1px, transparent 1px 4px);
   pointer-events: none;
 }
 
@@ -224,15 +231,15 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(180deg, rgba(4, 12, 26, 0.9), rgba(4, 12, 26, 0));
+  background: linear-gradient(180deg, rgba(3, 9, 18, 0.92), rgba(3, 9, 18, 0));
 }
 
 .va-title {
   font-size: 30px;
   font-weight: 800;
   letter-spacing: 6px;
-  color: #fff;
-  text-shadow: 0 0 18px rgba(34, 211, 238, 0.55);
+  color: #e8f3f9;
+  text-shadow: 0 0 18px rgba(27, 168, 196, 0.4);
 }
 
 .va-subtitle {
@@ -291,15 +298,15 @@ body {
 
 /* ---------- Variant B · 沉浸式 ---------- */
 .vb-root {
-  --bg0: #02040c;
-  --bg1: #081226;
-  --accent: #7dd3fc;
-  --accent2: #a78bfa;
-  --glass-bg: rgba(13, 24, 44, 0.55);
-  --glass-border: rgba(125, 211, 252, 0.28);
-  --text: #f2f8ff;
-  --text-dim: #9fb8d8;
-  background: radial-gradient(1400px 800px at 50% 40%, #0a1830 0%, #040a18 50%, #02040c 100%);
+  --bg0: #030509;
+  --bg1: #060e1c;
+  --accent: #3a9cbc;
+  --accent2: #5b6f9e;
+  --glass-bg: rgba(8, 14, 26, 0.52);
+  --glass-border: rgba(75, 140, 170, 0.2);
+  --text: #dcebf4;
+  --text-dim: #8298ab;
+  background: radial-gradient(1400px 800px at 50% 40%, #071524 0%, #03070d 50%, #010308 100%);
 }
 
 .vb-brand {
@@ -309,8 +316,8 @@ body {
   z-index: 20;
   font-size: 15px;
   letter-spacing: 3px;
-  color: rgba(242, 248, 255, 0.85);
-  text-shadow: 0 0 12px rgba(125, 211, 252, 0.5);
+  color: rgba(220, 235, 244, 0.8);
+  text-shadow: 0 0 12px rgba(58, 156, 188, 0.35);
 }
 
 .vb-glass {
@@ -321,7 +328,7 @@ body {
   -webkit-backdrop-filter: blur(14px);
   border: 1px solid var(--glass-border);
   border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35), inset 0 0 24px rgba(125, 211, 252, 0.05);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35), inset 0 0 24px rgba(58, 156, 188, 0.04);
 }
 
 .vb-stats {
@@ -393,11 +400,11 @@ body {
 .vb-drawer-foot {
   font-size: 11px;
   padding-top: 6px;
-  border-top: 1px solid rgba(125, 211, 252, 0.14);
+  border-top: 1px solid rgba(75, 140, 170, 0.12);
 }
 
 .sel-chip {
-  color: #ffc94d;
+  color: #e3ad52;
 }
 
 .hint {
@@ -407,15 +414,15 @@ body {
 
 /* ---------- Variant C · 简约商务 ---------- */
 .vc-root {
-  --bg0: #0b0f14;
-  --bg1: #131a21;
-  --accent: #d4a13a;
-  --accent2: #4c7dff;
-  --panel-bg: #141b23;
-  --panel-border: #242e3a;
-  --text: #f0f4f8;
-  --text-dim: #9aa7b5;
-  background: #0b0f14;
+  --bg0: #0a0e13;
+  --bg1: #10161d;
+  --accent: #c99b45;
+  --accent2: #3d63b8;
+  --panel-bg: #121922;
+  --panel-border: #202a35;
+  --text: #e4ebf1;
+  --text-dim: #8797a6;
+  background: #0a0e13;
   display: flex;
 }
 
@@ -433,8 +440,8 @@ body {
 .vc-side {
   flex: 1;
   min-width: 0;
-  background: linear-gradient(180deg, #11161d, #0b0f14);
-  border-left: 1px solid #1e2832;
+  background: linear-gradient(180deg, #0e131a, #090d11);
+  border-left: 1px solid #1a2330;
   padding: 26px 26px 18px;
   display: flex;
   flex-direction: column;
@@ -452,7 +459,7 @@ body {
 .vc-sub {
   font-size: 10px;
   letter-spacing: 2px;
-  color: #6d7a8a;
+  color: #5f6c78;
   margin-top: 3px;
 }
 
@@ -463,7 +470,7 @@ body {
 
 .vc-kpi {
   flex: 1;
-  background: #141b23;
+  background: #121922;
   border: 1px solid var(--panel-border);
   border-radius: 8px;
   padding: 10px 12px;
@@ -515,8 +522,8 @@ body {
   width: 16px;
   height: 16px;
   border-radius: 4px;
-  background: #1d2731;
-  color: #7d8b99;
+  background: #1a232c;
+  color: #75838f;
   font-size: 10px;
   display: flex;
   align-items: center;
@@ -533,7 +540,7 @@ body {
 .rk-bar {
   flex: 1;
   height: 6px;
-  background: #1b242e;
+  background: #18212a;
   border-radius: 3px;
   overflow: hidden;
 }
@@ -541,14 +548,14 @@ body {
 .rk-bar i {
   display: block;
   height: 100%;
-  background: linear-gradient(90deg, #2f6dff, var(--accent));
+  background: linear-gradient(90deg, #355a99, var(--accent));
   border-radius: 3px;
 }
 
 .rk-val {
   width: 48px;
   text-align: right;
-  color: #c9d4df;
+  color: #bcc8d2;
   font-variant-numeric: tabular-nums;
   flex: none;
 }
@@ -560,16 +567,16 @@ body {
 
 .vc-rank-item.sel .rk-idx {
   background: var(--accent);
-  color: #0b0f14;
+  color: #0a0e13;
 }
 
 .vc-rank-item.sel .rk-bar i {
-  background: linear-gradient(90deg, #b98a2d, #e8c265);
+  background: linear-gradient(90deg, #a17c32, #d3a855);
 }
 
 .vc-chart {
   height: 150px;
-  background: #141b23;
+  background: #121922;
   border: 1px solid var(--panel-border);
   border-radius: 8px;
   padding: 8px;
@@ -577,7 +584,7 @@ body {
 
 .vc-foot {
   font-size: 10px;
-  color: #5c6875;
+  color: #566270;
   text-align: center;
   margin-top: auto;
 }
@@ -589,8 +596,8 @@ body {
 
 .district-label {
   font-size: 12px;
-  color: rgba(186, 226, 255, 0.85);
-  text-shadow: 0 0 6px rgba(0, 0, 0, 0.8), 0 0 2px rgba(23, 195, 224, 0.6);
+  color: rgba(158, 186, 206, 0.8);
+  text-shadow: 0 0 6px rgba(0, 0, 0, 0.8), 0 0 2px rgba(18, 128, 155, 0.5);
   letter-spacing: 1px;
   white-space: nowrap;
   user-select: none;
@@ -599,16 +606,16 @@ body {
 }
 
 .district-label.hover {
-  color: #fff;
-  transform: scale(1.22);
-  text-shadow: 0 0 10px rgba(95, 232, 255, 0.9);
+  color: #e8f5fb;
+  transform: scale(1.18);
+  text-shadow: 0 0 10px rgba(70, 200, 216, 0.55);
 }
 
 .district-label.sel {
-  color: #ffd166;
-  transform: scale(1.3);
+  color: #e3ad52;
+  transform: scale(1.25);
   font-weight: 700;
-  text-shadow: 0 0 10px rgba(255, 201, 77, 0.9);
+  text-shadow: 0 0 10px rgba(227, 173, 82, 0.5);
 }
 
 /* ---------- 变体切换条（仅 DEV） ---------- */
@@ -620,10 +627,10 @@ body {
   z-index: 200;
   display: flex;
   align-items: center;
-  background: #101826;
-  border: 1px solid #38bdf8;
+  background: #0e141f;
+  border: 1px solid #2a7fae;
   border-radius: 6px;
-  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.25), 0 4px 18px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 0 0 1px rgba(60, 130, 170, 0.25), 0 4px 18px rgba(0, 0, 0, 0.5);
 }
 
 .sw-btn {
@@ -631,23 +638,23 @@ body {
   height: 38px;
   border: none;
   background: transparent;
-  color: #7dd3fc;
+  color: #3fa8c8;
   font-size: 18px;
   cursor: pointer;
   transition: background 0.15s ease;
 }
 
 .sw-btn:hover {
-  background: #1a2c46;
+  background: #16233a;
 }
 
 .sw-name {
   padding: 0 14px;
   font-size: 13px;
   letter-spacing: 1px;
-  color: #dff3ff;
-  border-left: 1px solid rgba(56, 189, 248, 0.3);
-  border-right: 1px solid rgba(56, 189, 248, 0.3);
+  color: #d5e8f2;
+  border-left: 1px solid rgba(70, 140, 175, 0.28);
+  border-right: 1px solid rgba(70, 140, 175, 0.28);
   height: 38px;
   display: flex;
   align-items: center;
@@ -668,15 +675,15 @@ body {
   display: flex;
   align-items: center;
   gap: 6px;
-  background: rgba(10, 18, 32, 0.85);
-  border: 1px solid rgba(56, 189, 248, 0.4);
+  background: rgba(8, 14, 24, 0.85);
+  border: 1px solid rgba(75, 140, 175, 0.32);
   border-radius: 4px;
   padding: 5px 10px;
-  color: #9fd8ef;
+  color: #8fb4c8;
 }
 
 .badge-prototype b {
-  color: #e0f6ff;
+  color: #d7e9f2;
   margin-left: 2px;
 }
 
@@ -684,8 +691,8 @@ body {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #22d3ee;
-  box-shadow: 0 0 8px #22d3ee;
+  background: #1ba8c4;
+  box-shadow: 0 0 8px #1ba8c4;
   animation: pulse 1.6s ease-in-out infinite;
 }
 
@@ -702,9 +709,9 @@ body {
 .badge-demo {
   bottom: 14px;
   right: 16px;
-  color: rgba(158, 178, 200, 0.6);
+  color: rgba(140, 160, 180, 0.55);
   background: rgba(8, 14, 24, 0.6);
   padding: 4px 8px;
   border-radius: 4px;
-  border: 1px dashed rgba(158, 178, 200, 0.25);
+  border: 1px dashed rgba(140, 160, 180, 0.2);
 }

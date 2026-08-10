@@ -3,6 +3,9 @@
  * 含：区县挤出地图（hover 高亮 / 点击选中抬高变色）、飞线、粒子、地面网格、
  * 中文标签（drei Html，DOM 叠加）、辉光（drei 10.x <Effects> + three-stdlib UnrealBloomPass）、
  * OrbitControls 慢速自转。
+ *
+ * 色板设计意图（v2 降亮）：全区块/飞线/粒子/网格从高亮青降为暗青蓝阶（主色 #1ba8c4 量级），
+ * hover 用 #46c8d8、选中用暖金 #e3ad52 作唯一高亮点缀；灯光整体降档，避免区块过曝发白。
  */
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
@@ -14,8 +17,8 @@ import { buildCityGeo, buildFallbackGeo, LIFT, type CityGeoData } from '../lib/g
 // 运行时注册 UnrealBloomPass（类型声明见 src/types/three-extend.d.ts）
 extend({ UnrealBloomPass })
 
-const COLOR_HOVER = new THREE.Color('#5fe8ff')
-const COLOR_SELECT = new THREE.Color('#ffc94d')
+const COLOR_HOVER = new THREE.Color('#46c8d8')
+const COLOR_SELECT = new THREE.Color('#e3ad52')
 
 export interface SceneProps {
   className?: string
@@ -60,10 +63,10 @@ function FlyLines({ geo }: { geo: CityGeoData }) {
               refs.current[i] = el
             }}
             points={[start, mid, centerTop]}
-            color="#4fd8ff"
+            color="#2f93ad"
             lineWidth={1}
             transparent
-            opacity={0.4}
+            opacity={0.3}
             dashed
             dashSize={1.6}
             gapSize={3.2}
@@ -91,15 +94,15 @@ function CenterNode({ geo }: { geo: CityGeoData }) {
     <group ref={group} position={[0, y, 0]}>
       <mesh>
         <sphereGeometry args={[1.5, 24, 24]} />
-        <meshBasicMaterial color="#7deaff" transparent opacity={0.95} />
+        <meshBasicMaterial color="#37a3bd" transparent opacity={0.9} />
       </mesh>
       <mesh rotation-x={Math.PI / 2}>
         <torusGeometry args={[3.4, 0.07, 8, 56]} />
-        <meshBasicMaterial color="#4fd8ff" transparent opacity={0.75} />
+        <meshBasicMaterial color="#2b8ba6" transparent opacity={0.55} />
       </mesh>
       <mesh rotation-x={Math.PI / 2}>
         <torusGeometry args={[5.2, 0.05, 8, 56]} />
-        <meshBasicMaterial color="#2f8fd0" transparent opacity={0.55} />
+        <meshBasicMaterial color="#23577a" transparent opacity={0.4} />
       </mesh>
     </group>
   )
@@ -128,11 +131,11 @@ function Particles({ geo }: { geo: CityGeoData }) {
     <group ref={group}>
       <Points positions={positions} stride={3} frustumCulled={false}>
         <PointMaterial
-          color="#8fe8ff"
+          color="#4d9fb5"
           size={1.1}
           sizeAttenuation
           transparent
-          opacity={0.75}
+          opacity={0.5}
           depthWrite={false}
           blending={THREE.AdditiveBlending}
         />
@@ -183,8 +186,8 @@ function CityWorld({ geo, autoRotate, bloomStrength, showParticles, showFlyLines
         vertexColors: true,
         roughness: 0.55,
         metalness: 0.3,
-        emissive: '#0a2440',
-        emissiveIntensity: 0.45,
+        emissive: '#071b30',
+        emissiveIntensity: 0.3,
       }),
     [],
   )
@@ -227,11 +230,11 @@ function CityWorld({ geo, autoRotate, bloomStrength, showParticles, showFlyLines
 
   return (
     <>
-      {/* 灯光 */}
-      <ambientLight intensity={0.75} color="#bcd8ff" />
-      <directionalLight position={[60, 90, 40]} intensity={1.4} />
-      <directionalLight position={[-50, 60, -70]} intensity={0.5} color="#2f6dff" />
-      <pointLight position={[0, 46, 0]} intensity={420} color="#37c8ff" distance={140} decay={2} />
+      {/* 灯光（v2 降档：避免区块过曝发白） */}
+      <ambientLight intensity={0.55} color="#b8d0e8" />
+      <directionalLight position={[60, 90, 40]} intensity={0.9} />
+      <directionalLight position={[-50, 60, -70]} intensity={0.32} color="#2a548f" />
+      <pointLight position={[0, 46, 0]} intensity={200} color="#2a86a8" distance={110} decay={2} />
 
       {/* 区县挤出地图 */}
       <mesh
@@ -262,12 +265,12 @@ function CityWorld({ geo, autoRotate, bloomStrength, showParticles, showFlyLines
           args={[420, 420]}
           cellSize={10}
           cellThickness={0.4}
-          cellColor="#0f3a57"
+          cellColor="#0a2a40"
           sectionSize={50}
           sectionThickness={1}
-          sectionColor="#1c5d85"
+          sectionColor="#13425f"
           fadeDistance={380}
-          fadeStrength={1.4}
+          fadeStrength={1.1}
           side={THREE.DoubleSide}
         />
       )}
@@ -324,7 +327,7 @@ export function Scene({ className, onSelect, ...rest }: SceneProps) {
         dpr={[1, 2]}
         camera={{ position: cameraPosition ?? [0, 85, 140], fov: 50, near: 1, far: 2000 }}
         gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
-        onCreated={({ gl }) => gl.setClearColor('#030a16', 0)}
+        onCreated={({ gl }) => gl.setClearColor('#04080f', 0)}
       >
         {geo && <CityWorld geo={geo} onSelect={onSelect} {...worldProps} />}
       </Canvas>

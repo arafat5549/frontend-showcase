@@ -4,6 +4,10 @@
  * → 每个区县多边形部件合并（mergeGeometries，three 0.185 的正确 API）→ 全区县合并为单一网格
  * → 顶点附带 district 索引属性（用于 hover/选中识别）+ vertex color（按区县着色）。
  * 若 GeoJSON 加载失败，回退为演示用六边形模拟区块（页面会标注"模拟数据"）。
+ *
+ * 色板设计意图（v2 降亮）：区块渐变从高亮青降为"深夜墨蓝"——低值 #0a2540（深海军蓝）
+ * → 高值 #12809b（暗青蓝，明度约 45%），保证区块是视觉主角但不再发白刺眼；
+ * 金色系只保留给选中态与少量 KPI 点缀，见 Scene.tsx / index.css 对应说明。
  */
 import * as THREE from 'three'
 import { geoMercator } from 'd3-geo'
@@ -19,8 +23,8 @@ const MAX_H = 16
 /** 选中抬升高度 */
 export const LIFT = 2.6
 
-const COLOR_LOW = new THREE.Color('#0b2f52')
-const COLOR_HIGH = new THREE.Color('#17c3e0')
+const COLOR_LOW = new THREE.Color('#0a2540')
+const COLOR_HIGH = new THREE.Color('#12809b')
 
 export interface GeoDistrictInfo {
   name: string

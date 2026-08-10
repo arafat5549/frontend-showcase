@@ -1,0 +1,335 @@
+/**
+ * 原型用途：智慧城市数据大屏 —— 共享 3D 场景（三个变体复用）。
+ * 含：区县挤出地图（hover 高亮 / 点击选中抬高变色）、飞线、粒子、地面网格、
+ * 中文标签（drei Html，DOM 叠加）、辉光（drei 10.x <Effects> + three-stdlib UnrealBloomPass）、
+ * OrbitControls 慢速自转。
+ */
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import * as THREE from 'three'
+import { Canvas, extend, useFrame, type ThreeEvent } from '@react-three/fiber'
+import { CatmullRomLine, Effects, Grid, Html, OrbitControls, PointMaterial, Points } from '@react-three/drei'
+import { UnrealBloomPass, type Line2 } from 'three-stdlib'
+import { buildCityGeo, buildFallbackGeo, LIFT, type CityGeoData } from '../lib/geo'
+
+// 运行时注册 UnrealBloomPass（类型声明见 src/types/three-extend.d.ts）
+extend({ UnrealBloomPass })
+
+const COLOR_HOVER = new THREE.Color('#5fe8ff')
+const COLOR_SELECT = new THREE.Color('#ffc94d')
+
+export interface SceneProps {
+  className?: string
+  autoRotate?: boolean
+  bloomStrength?: number
+  cameraPosition?: [number, number, number]
+  showParticles?: boolean
+  showFlyLines?: boolean
+  showGrid?: boolean
+  showLabels?: boolean
+  /** 点击区块时回调区县名（取消选中时为 null） */
+  onSelect?: (name: string | null) => void
+}
+
+/* ---------------- 飞线 ---------------- */
+function FlyLines({ geo }: { geo: CityGeoData }) {
+  const refs = useRef<(Line2 | null)[]>([])
+  const centerTop = useMemo(
+    () => new THREE.Vector3(0, geo.maxHeight + 8, 0),
+    [geo],
+  )
+
+  useFrame((_, delta) => {
+    for (const l of refs.current) {
+      if (l) l.material.dashOffset -= delta * 3
+    }
+  })
+
+  return (
+    <>
+      {geo.districts.map((d, i) => {
+        const start = new THREE.Vector3(d.base.x, d.height + 0.6, d.base.z)
+        const mid = new THREE.Vector3(
+          (start.x + centerTop.x) / 2,
+          Math.max(d.height, centerTop.y) + 9,
+          (start.z + centerTop.z) / 2,
+        )
+        return (
+          <CatmullRomLine
+            key={d.name}
+            ref={(el) => {
+              refs.current[i] = el
+            }}
+            points={[start, mid, centerTop]}
+            color="#4fd8ff"
+            lineWidth={1}
+            transparent
+            opacity={0.4}
+            dashed
+            dashSize={1.6}
+            gapSize={3.2}
+            dashScale={1}
+          />
+        )
+      })}
+    </>
+  )
+}
+
+/* ---------------- 城市中心节点（脉动球 + 双环） ---------------- */
+function CenterNode({ geo }: { geo: CityGeoData }) {
+  const group = useRef<THREE.Group>(null)
+  useFrame((state) => {
+    const t = state.clock.elapsedTime
+    const g = group.current
+    if (!g) return
+    g.children[0].scale.setScalar(1 + Math.sin(t * 2.2) * 0.18)
+    g.children[1].rotation.z += 0.012
+    g.children[2].rotation.z -= 0.008
+  })
+  const y = geo.maxHeight + 8
+  return (
+    <group ref={group} position={[0, y, 0]}>
+      <mesh>
+        <sphereGeometry args={[1.5, 24, 24]} />
+        <meshBasicMaterial color="#7deaff" transparent opacity={0.95} />
+      </mesh>
+      <mesh rotation-x={Math.PI / 2}>
+        <torusGeometry args={[3.4, 0.07, 8, 56]} />
+        <meshBasicMaterial color="#4fd8ff" transparent opacity={0.75} />
+      </mesh>
+      <mesh rotation-x={Math.PI / 2}>
+        <torusGeometry args={[5.2, 0.05, 8, 56]} />
+        <meshBasicMaterial color="#2f8fd0" transparent opacity={0.55} />
+      </mesh>
+    </group>
+  )
+}
+
+/* ---------------- 粒子 ---------------- */
+function Particles({ geo }: { geo: CityGeoData }) {
+  const group = useRef<THREE.Group>(null)
+  const positions = useMemo(() => {
+    const n = 520
+    const arr = new Float32Array(n * 3)
+    const r = geo.radius * 0.92
+    for (let i = 0; i < n; i++) {
+      arr[i * 3] = (Math.random() - 0.5) * r * 2
+      arr[i * 3 + 1] = Math.random() * (geo.maxHeight + 14)
+      arr[i * 3 + 2] = (Math.random() - 0.5) * r * 2
+    }
+    return arr
+  }, [geo])
+
+  useFrame((_, delta) => {
+    if (group.current) group.current.rotation.y += delta * 0.04
+  })
+
+  return (
+    <group ref={group}>
+      <Points positions={positions} stride={3} frustumCulled={false}>
+        <PointMaterial
+          color="#8fe8ff"
+          size={1.1}
+          sizeAttenuation
+          transparent
+          opacity={0.75}
+          depthWrite={false}
+          blending={THREE.AdditiveBlending}
+        />
+      </Points>
+    </group>
+  )
+}
+
+/* ---------------- 3D 中文标签 ---------------- */
+function MapLabels({ geo, hover, selected }: { geo: CityGeoData; hover: number | null; selected: number | null }) {
+  if (!geo.districts.length) return null
+  return (
+    <>
+      {geo.districts.map((d) => {
+        const cls = [
+          'district-label',
+          hover === d.index ? 'hover' : '',
+          selected === d.index ? 'sel' : '',
+        ]
+          .filter(Boolean)
+          .join(' ')
+        return (
+          <Html
+            key={d.name}
+            position={[d.centroid.x, d.centroid.y + 0.8, d.centroid.z]}
+            center
+            pointerEvents="none"
+            zIndexRange={[9, 0]}
+            className="map-label"
+          >
+            <div className={cls}>{d.name}</div>
+          </Html>
+        )
+      })}
+    </>
+  )
+}
+
+/* ---------------- 3D 内容 ---------------- */
+function CityWorld({ geo, autoRotate, bloomStrength, showParticles, showFlyLines, showGrid, showLabels, onSelect }: SceneProps & { geo: CityGeoData }) {
+  const [hover, setHover] = useState<number | null>(null)
+  const [selected, setSelected] = useState<number | null>(null)
+  const geom = geo.geometry
+
+  const material = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        vertexColors: true,
+        roughness: 0.55,
+        metalness: 0.3,
+        emissive: '#0a2440',
+        emissiveIntensity: 0.45,
+      }),
+    [],
+  )
+
+  // hover / 选中：抬高 + 变色（基于顶点区间）
+  useLayoutEffect(() => {
+    const posAttr = geom.attributes.position as THREE.BufferAttribute
+    const colorAttr = geom.attributes.color as THREE.BufferAttribute
+    const pos = posAttr.array as Float32Array
+    geo.basePositions.forEach((v, i) => {
+      pos[i] = v
+    })
+    if (selected != null && geo.districts[selected]) {
+      const info = geo.districts[selected]
+      for (let i = info.start * 3 + 1; i < info.end * 3 + 1; i += 3) pos[i] += LIFT
+    }
+    posAttr.needsUpdate = true
+    geom.computeBoundingSphere()
+
+    const colors = geo.baseColors.slice()
+    for (const d of geo.districts) {
+      let target = d.color
+      if (hover === d.index) target = COLOR_HOVER
+      if (selected === d.index) target = COLOR_SELECT
+      for (let v = d.start; v < d.end; v++) {
+        colors[v * 3] = target.r
+        colors[v * 3 + 1] = target.g
+        colors[v * 3 + 2] = target.b
+      }
+    }
+    ;(colorAttr.array as Float32Array).set(colors)
+    colorAttr.needsUpdate = true
+  }, [hover, selected, geom, geo])
+
+  const districtAt = (e: ThreeEvent<MouseEvent>): number | null => {
+    if (!e.face) return null
+    const attr = geom.getAttribute('district') as THREE.BufferAttribute
+    return attr.getX(e.face.a)
+  }
+
+  return (
+    <>
+      {/* 灯光 */}
+      <ambientLight intensity={0.75} color="#bcd8ff" />
+      <directionalLight position={[60, 90, 40]} intensity={1.4} />
+      <directionalLight position={[-50, 60, -70]} intensity={0.5} color="#2f6dff" />
+      <pointLight position={[0, 46, 0]} intensity={420} color="#37c8ff" distance={140} decay={2} />
+
+      {/* 区县挤出地图 */}
+      <mesh
+        geometry={geom}
+        material={material}
+        onPointerOver={(e) => {
+          e.stopPropagation()
+          const i = districtAt(e)
+          if (i != null) setHover(i)
+        }}
+        onPointerOut={() => setHover(null)}
+        onClick={(e) => {
+          e.stopPropagation()
+          const i = districtAt(e)
+          const next = i != null && i !== selected ? i : null
+          setSelected(next)
+          onSelect?.(next != null ? geo.districts[next].name : null)
+        }}
+      />
+
+      {showFlyLines && <FlyLines geo={geo} />}
+      <CenterNode geo={geo} />
+      {showParticles && <Particles geo={geo} />}
+
+      {showGrid && (
+        <Grid
+          position={[0, -0.3, 0]}
+          args={[420, 420]}
+          cellSize={10}
+          cellThickness={0.4}
+          cellColor="#0f3a57"
+          sectionSize={50}
+          sectionThickness={1}
+          sectionColor="#1c5d85"
+          fadeDistance={380}
+          fadeStrength={1.4}
+          side={THREE.DoubleSide}
+        />
+      )}
+
+      {showLabels && <MapLabels geo={geo} hover={hover} selected={selected} />}
+
+      <OrbitControls
+        target={[0, 6, 0]}
+        enableDamping
+        dampingFactor={0.08}
+        autoRotate={autoRotate}
+        autoRotateSpeed={0.7}
+        minDistance={40}
+        maxDistance={430}
+        maxPolarAngle={Math.PI / 2.15}
+      />
+
+      {bloomStrength != null && bloomStrength > 0 && (
+        <Effects renderIndex={1}>
+          <unrealBloomPass args={[new THREE.Vector2(1600, 900), bloomStrength, 0.8, 0.12]} />
+        </Effects>
+      )}
+    </>
+  )
+}
+
+/* ---------------- 场景入口 ---------------- */
+export function Scene({ className, onSelect, ...rest }: SceneProps) {
+  const [geo, setGeo] = useState<CityGeoData | null>(null)
+  const { cameraPosition, ...worldProps } = rest
+
+  useEffect(() => {
+    let cancelled = false
+    const load = async () => {
+      try {
+        const res = await fetch('/geojson/fuzhou.json')
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        const fc = await res.json()
+        if (!cancelled) setGeo(buildCityGeo(fc))
+      } catch {
+        // 下载失败 → 模拟区块兜底（页面标注"模拟数据"）
+        if (!cancelled) setGeo(buildFallbackGeo())
+      }
+    }
+    load()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  return (
+    <div className={className ?? 'scene-fill'}>
+      <Canvas
+        dpr={[1, 2]}
+        camera={{ position: cameraPosition ?? [0, 85, 140], fov: 50, near: 1, far: 2000 }}
+        gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
+        onCreated={({ gl }) => gl.setClearColor('#030a16', 0)}
+      >
+        {geo && <CityWorld geo={geo} onSelect={onSelect} {...worldProps} />}
+      </Canvas>
+      {!geo && <div className="scene-loading">地图数据加载中…</div>}
+      {geo?.simulated && <div className="scene-sim-note">⚠ 模拟数据（GeoJSON 加载失败，已用演示区块替代）</div>}
+    </div>
+  )
+}

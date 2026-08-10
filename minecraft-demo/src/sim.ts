@@ -122,7 +122,74 @@ export class Sim {
     const len = Math.hypot(dx, dz) || 1
     dx /= len
     dz /= len
-    return [b.x + 0.5 + dx * 1.15, b.z + 0.5 + dz * 1.15]
+    return [b.x + 0.5 + dx * 1.45, b.z + 0.5 + dz * 1.45]
+  }
+
+  /* ── 行走路径绕行：直线穿过房子（禁区矩形）时走角点 ── */
+  private static RECT = { x0: -1.1, x1: 6.6, z0: -1.1, z1: 5.6 } // 房子占地 + 小人缓冲
+  private path: [number, number][] = []
+  private pathB: [number, number][] = []
+
+  private static pointInRect(x: number, z: number): boolean {
+    const r = Sim.RECT
+    return x >= r.x0 && x <= r.x1 && z >= r.z0 && z <= r.z1
+  }
+
+  private static segHitsRect(ax: number, az: number, bx: number, bz: number): boolean {
+    const r = Sim.RECT
+    if (Sim.pointInRect(ax, az) || Sim.pointInRect(bx, bz)) return true
+    // 线段与矩形 4 边相交
+    const edges: [number, number, number, number][] = [
+      [r.x0, r.z0, r.x1, r.z0],
+      [r.x1, r.z0, r.x1, r.z1],
+      [r.x1, r.z1, r.x0, r.z1],
+      [r.x0, r.z1, r.x0, r.z0],
+    ]
+    for (const [cx, cz, dx, dz] of edges) {
+      const s1x = bx - ax
+      const s1z = bz - az
+      const s2x = dx - cx
+      const s2z = dz - cz
+      const denom = s1x * s2z - s1z * s2x
+      if (Math.abs(denom) < 1e-9) continue
+      const t = ((cx - ax) * s2z - (cz - az) * s2x) / denom
+      const u = ((cx - ax) * s1z - (cz - az) * s1x) / denom
+      if (t >= 0 && t <= 1 && u >= 0 && u <= 1) return true
+    }
+    return false
+  }
+
+  private computePath(tx: number, tz: number, p: Player = this.playerA) {
+    const ax = p.group.position.x
+    const az = p.group.position.z
+    this.pathB = []
+    const path: [number, number][] = [[tx, tz]]
+    if (Sim.segHitsRect(ax, az, tx, tz)) {
+      const r = Sim.RECT
+      const corners: [number, number][] = [
+        [r.x0, r.z0],
+        [r.x1, r.z0],
+        [r.x1, r.z1],
+        [r.x0, r.z1],
+      ]
+      let best: [number, number] | null = null
+      let bestLen = Infinity
+      for (const [cx, cz] of corners) {
+        if (Sim.segHitsRect(ax, az, cx, cz)) continue
+        if (Sim.segHitsRect(cx, cz, tx, tz)) continue
+        const len = Math.hypot(cx - ax, cz - az) + Math.hypot(tx - cx, tz - cz)
+        if (len < bestLen) {
+          bestLen = len
+          best = [cx, cz]
+        }
+      }
+      if (best) {
+        path.length = 0
+        path.push(best, [tx, tz])
+      }
+    }
+    if (p === this.playerA) this.path = path
+    else this.pathB = path
   }
 
   /* ── 建造更新 ── */
@@ -141,10 +208,15 @@ export class Sim {
     const [sx, sz] = this.standPoint(b)
     switch (this.bState) {
       case 'walk': {
-        const moving = walkTo(this.playerA, sx, sz, dt, 4.2)
+        if (!this.path.length) this.computePath(sx, sz)
+        const [tx, tz] = this.path[0]
+        const moving = walkTo(this.playerA, tx, tz, dt, 4.2)
         if (!moving) {
-          this.bState = 'lift'
-          this.bTimer = 0
+          this.path.shift()
+          if (!this.path.length) {
+            this.bState = 'lift'
+            this.bTimer = 0
+          }
         }
         break
       }
@@ -186,8 +258,9 @@ export class Sim {
       this.phase = 'watch'
       this.ev.onPhase('watch')
       this.wState = 'idle'
-      this.playerA.group.position.set(3.0, 0, 4.6)
-      this.playerA.group.rotation.y = Math.PI
+      // A 走到门前空地，面向房子（+z）
+      this.playerA.group.position.set(3.0, 0, -1.6)
+      this.playerA.group.rotation.y = 0
       // 创建手表
       this.spawnWatch()
       // B 小人从远处登场
@@ -239,12 +312,17 @@ export class Sim {
         }
         break
       case 'approach': {
-        const moving = walkTo(B!, 3.2, 3.4, dt, 2.6)
-        B!.group.rotation.y = Math.PI
+        // B 走向 A 面前（绕行房子）
+        if (!this.pathB.length) this.computePath(3.0, -0.4, B!)
+        const [tx, tz] = this.pathB[0]
+        const moving = walkTo(B!, tx, tz, dt, 2.6)
         if (!moving) {
-          this.wState = 'bump'
-          this.wTimer = 0
-          this.bumped = false
+          this.pathB.shift()
+          if (!this.pathB.length) {
+            this.wState = 'bump'
+            this.wTimer = 0
+            this.bumped = false
+          }
         }
         break
       }
@@ -255,7 +333,7 @@ export class Sim {
         }
         const p = Math.min(1, this.wTimer / 0.9)
         this.watchLift = 1
-        // B 伸出右手（抬起）
+        // B 面向 A（-z）
         B!.group.rotation.y = Math.PI + (1 - p) * 0.1
         if (this.watchFace) {
           const mat = this.watchFace.material as THREE.MeshLambertMaterial
@@ -346,6 +424,8 @@ export class Sim {
     }
     this.playerA.group.position.set(3.5, 0, 7.2)
     this.playerA.group.rotation.y = Math.PI
+    this.path = []
+    this.pathB = []
     this.world.controls.target.set(0, 2.2, 0)
     this.instant = false
     this.ev.onSubtitle(null)
@@ -375,7 +455,7 @@ export class Sim {
       this.finishBuild()
       this.wState = 'end'
       this.endLerp = 1
-      this.playerB!.group.position.set(3.2, 0, 3.4)
+      this.playerB!.group.position.set(3.0, 0, -0.4)
       this.playerB!.group.rotation.y = Math.PI
       this.ev.onSubtitle(null)
       this.ev.onPhase('done')

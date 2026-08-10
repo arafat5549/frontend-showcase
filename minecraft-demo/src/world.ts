@@ -13,8 +13,8 @@ export interface World {
 
 export function createWorld(container: HTMLElement): World {
   const scene = new THREE.Scene()
-  scene.background = new THREE.Color(0x7ec8f0)
-  scene.fog = new THREE.Fog(0x7ec8f0, 45, 90)
+  scene.background = new THREE.Color(0x87c8ee)
+  scene.fog = new THREE.Fog(0x87c8ee, 55, 130)
 
   const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 200)
   camera.position.set(11, 9, 13)
@@ -39,7 +39,7 @@ export function createWorld(container: HTMLElement): World {
   scene.add(sun)
 
   // 地形：草地块（顶绿 / 侧棕）
-  const geo = new THREE.BoxGeometry(24, 1, 24)
+  const geo = new THREE.BoxGeometry(64, 1, 64)
   const mats = [
     new THREE.MeshLambertMaterial({ color: 0x8a5a33 }), // +x 侧
     new THREE.MeshLambertMaterial({ color: 0x8a5a33 }), // -x
@@ -53,13 +53,16 @@ export function createWorld(container: HTMLElement): World {
   ground.receiveShadow = true
   scene.add(ground)
 
+  // 远景：太阳 / 方块山 / 树（fog 自然淡出）
+  generateScenery(scene)
+
   // 云：白方块
   const clouds: THREE.Mesh[] = []
   const cloudGeo = new THREE.BoxGeometry(3.4, 0.5, 1.8)
   const cloudMat = new THREE.MeshLambertMaterial({ color: 0xffffff, transparent: true, opacity: 0.92 })
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < 5; i++) {
     const c = new THREE.Mesh(cloudGeo, cloudMat)
-    c.position.set(-16 + i * 11, 11.5 + (i % 2) * 1.2, -8 + (i * 5) % 12)
+    c.position.set(-20 + i * 12, 11.5 + (i % 2) * 1.2, -10 + (i * 5) % 14)
     c.castShadow = false
     scene.add(c)
     clouds.push(c)
@@ -90,4 +93,58 @@ export function createWorld(container: HTMLElement): World {
   window.addEventListener('resize', resize)
 
   return { scene, camera, renderer, controls, clouds, ground }
+}
+
+/* ── 程序化远景：太阳 / 方块山 / 树（Minecraft 方块感，fog 淡出） ── */
+function generateScenery(scene: THREE.Scene) {
+  // 太阳：远处发光方块
+  const sun = new THREE.Mesh(
+    new THREE.BoxGeometry(3.2, 3.2, 0.6),
+    new THREE.MeshBasicMaterial({ color: 0xffe066 }),
+  )
+  sun.position.set(-34, 24, -58)
+  sun.frustumCulled = false
+  scene.add(sun)
+
+  // 方块山：错落大块堆叠
+  const mountainMats = [
+    new THREE.MeshLambertMaterial({ color: 0x7c8f6e }), // 中
+    new THREE.MeshLambertMaterial({ color: 0x64765a }), // 深
+    new THREE.MeshLambertMaterial({ color: 0xe8e8dc }), // 雪顶
+  ]
+  const addMountain = (cx: number, cz: number, seed: number) => {
+    const stack = [
+      { s: [7, 2.6, 7], y: 1.3, m: seed % 2 },
+      { s: [5.4, 2.2, 5.4], y: 3.6, m: seed % 2 },
+      { s: [3.6, 2, 3.6], y: 5.5, m: (seed + 1) % 2 },
+      { s: [2.4, 1.6, 2.4], y: 7.1, m: 0 },
+      { s: [1.5, 0.9, 1.5], y: 8.3, m: 2 }, // 雪顶
+    ]
+    for (const s of stack) {
+      const m = new THREE.Mesh(
+        new THREE.BoxGeometry(s.s[0], s.s[1], s.s[2]),
+        mountainMats[s.m],
+      )
+      m.position.set(cx + (seed % 3 - 1) * 1.2, s.y, cz + ((seed >> 1) % 3 - 1) * 1.1)
+      scene.add(m)
+    }
+  }
+  addMountain(-32, -34, 1)
+  addMountain(30, -42, 4)
+  addMountain(-38, 30, 2)
+  addMountain(42, 26, 5)
+
+  // 方块树：远处随机散布
+  const trunkMat = new THREE.MeshLambertMaterial({ color: 0x6b4a2b })
+  const leafMat = new THREE.MeshLambertMaterial({ color: 0x3e8e41 })
+  const trees: [number, number][] = [
+    [-18, -22], [-10, -28], [22, -18], [16, -26], [-24, 18], [-14, 24], [20, 22], [28, 16], [0, -34], [-6, 32],
+  ]
+  for (const [tx, tz] of trees) {
+    const trunk = new THREE.Mesh(new THREE.BoxGeometry(0.5, 1.8, 0.5), trunkMat)
+    trunk.position.set(tx, 0.9, tz)
+    const leaf = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.8, 1.8), leafMat)
+    leaf.position.set(tx, 2.7, tz)
+    scene.add(trunk, leaf)
+  }
 }

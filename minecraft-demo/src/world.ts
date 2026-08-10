@@ -66,9 +66,13 @@ function createTerrain(scene: THREE.Scene): THREE.Mesh {
     const x = pos.getX(i)
     const z = pos.getZ(i)
     const r = Math.hypot(x, z)
-    let h = 0
-    if (r > 24) {
-      const t = Math.min(1, (r - 24) / 44)
+    let h: number
+    if (r < 22) {
+      h = -0.5 // 中心下挖：方块地皮（顶面 y=0）嵌进坑里，避免共面 z-fighting
+    } else if (r < 26) {
+      h = -0.5 + ((r - 22) / 4) * 0.5 // 过渡坡
+    } else {
+      const t = Math.min(1, (r - 26) / 42)
       const f = t * t * (3 - 2 * t) // smoothstep
       let amp = 1
       let freq = 0.02

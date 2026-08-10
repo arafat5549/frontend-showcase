@@ -23,16 +23,25 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: crawler-showcase/package-lock.json
-      - name: Install dependencies
+          cache-dependency-path: '**/package-lock.json'
+      - name: Install & build crawler-showcase
         working-directory: crawler-showcase
-        run: npm ci
-      - name: Build
-        working-directory: crawler-showcase
-        run: npm run build
+        run: |
+          npm ci
+          npm run build
+      - name: Install & build minecraft-demo
+        working-directory: minecraft-demo
+        run: |
+          npm ci
+          npm run build
+      - name: Assemble static site
+        run: |
+          mkdir -p staging/minecraft-demo
+          cp -r crawler-showcase/dist/* staging/
+          cp -r minecraft-demo/dist/* staging/minecraft-demo/
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: crawler-showcase/dist
+          path: staging
 
   deploy:
     needs: build

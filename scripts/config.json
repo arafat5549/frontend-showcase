@@ -5,6 +5,7 @@
     "encoding": "utf-8",
     "pages": 1,
     "delay_seconds": 1.0,
+    "total_count": 56785,
     "headers": {
       "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
     },

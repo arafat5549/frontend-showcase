@@ -324,6 +324,7 @@ def main():
             "fetched": fetched_total,
             "new": len(new_items),
             "total": len(rows),
+            "total_count": src.get("total_count", 0),
             "elapsed": round(elapsed, 1),
         })
         print(f"events: {rec.path}", flush=True)

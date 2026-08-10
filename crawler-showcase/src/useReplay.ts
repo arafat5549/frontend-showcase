@@ -27,13 +27,14 @@ export interface Meta {
   fetched: number
   new: number
   total: number
+  total_count?: number
   elapsed: number
 }
 
 const BASE_MS: Record<string, number> = {
   request: 650,
   parse: 450,
-  item: 230,
+  item: 170,
   dedupe: 650,
   export: 900,
   done: 350,
@@ -76,6 +77,7 @@ export function useReplay() {
   const [limit, setLimitState] = useState('all')
   const [meta, setMetaState] = useState<Meta | null>(null)
   const [err, setErr] = useState('')
+  const startedRef = useRef(false) // 数据加载后自动播放，只启动一次
 
   /** 按当前条数裁剪后的事件流 */
   const limited = (): Evt[] => {
@@ -256,6 +258,10 @@ export function useReplay() {
         setTotal(limited().length)
         if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
           skip()
+        } else if (!startedRef.current) {
+          // 默认直接播放
+          startedRef.current = true
+          startPlay()
         }
       })
       .catch((e: Error) => {

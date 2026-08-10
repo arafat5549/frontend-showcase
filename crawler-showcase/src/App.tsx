@@ -169,9 +169,13 @@ function TerminalWin({ log, err }: { log: Evt[]; err: string }) {
   )
 }
 
+function fmt(n?: number) {
+  return n ? n.toLocaleString('zh-CN') : '-'
+}
+
 /* ══════════════ Excel 报表窗口 ══════════════ */
 
-function ExcelWin({ rows, meta, finished }: { rows: Item[]; meta: { source: string; run_time: string } | null; finished: boolean }) {
+function ExcelWin({ rows, meta, finished }: { rows: Item[]; meta: { total_count?: number; run_time: string } | null; finished: boolean }) {
   return (
     <WinWindow icon="excel" title="政采公告_中央.xlsx - Excel" className="excel-win">
       <div className="xls-namebar">
@@ -211,8 +215,10 @@ function ExcelWin({ rows, meta, finished }: { rows: Item[]; meta: { source: stri
         </table>
       </div>
       <div className="xls-statusbar">
-        <span className="xls-ready">{finished ? '完成' : '就绪'}</span>
-        <span className="xls-count">共 {rows.length} 条{meta ? ` · 采集于 ${meta.run_time}` : ''}</span>
+        <span className="xls-ready">{finished ? '完成' : '采集中…'}</span>
+        <span className="xls-count">
+          显示前 {rows.length} 条 · 全量 {fmt(meta?.total_count)} 条{meta ? ` · ${meta.run_time}` : ''}
+        </span>
       </div>
       <div className="xls-sheetbar">
         <span className="xls-sheet active">政采公告</span>

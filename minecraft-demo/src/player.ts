@@ -41,16 +41,18 @@ export function createPlayer(opts: { shirt?: number; pants?: number; skin?: numb
   body.castShadow = true
   group.add(body)
 
-  // 腿
+  // 腿（几何体重心下移 → 旋转轴在髋部，摆动不穿身体）
   const legGeo = new THREE.BoxGeometry(0.26, 0.6, 0.3)
+  legGeo.translate(0, -0.3, 0)
   const legL = new THREE.Mesh(legGeo, mat(pants))
   legL.position.set(-0.15, 0.3, 0)
   const legR = new THREE.Mesh(legGeo, mat(pants))
   legR.position.set(0.15, 0.3, 0)
   group.add(legL, legR)
 
-  // 手臂（右臂持有物挂点，左臂戴表挂点）
+  // 手臂（几何体重心下移 → 旋转轴在肩部，抬臂不插身体）
   const armGeo = new THREE.BoxGeometry(0.2, 0.62, 0.25)
+  armGeo.translate(0, -0.31, 0)
   const armL = new THREE.Mesh(armGeo, mat(shirt))
   armL.position.set(-0.41, 1.05, 0)
   const armR = new THREE.Mesh(armGeo, mat(shirt))

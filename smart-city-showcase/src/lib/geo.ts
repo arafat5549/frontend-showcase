@@ -6,7 +6,7 @@
  * 若 GeoJSON 加载失败，回退为演示用六边形模拟区块（页面会标注"模拟数据"）。
  */
 import * as THREE from 'three'
-import { geoMercator, geoCentroid } from 'd3-geo'
+import { geoMercator } from 'd3-geo'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { districts, statsByName } from '../data/mock'
 
@@ -75,26 +75,63 @@ export function buildCityGeo(fc: unknown): CityGeoData {
   const minGdp = Math.min(...gdps)
   const maxGdp = Math.max(...gdps)
 
-  const projection = geoMercator().fitSize([MAP_W, MAP_H], fc as never)
+  // 手动 fit：d3-geo 的 fitSize/geoBounds 遵循"外环顺时针"旧约定，对 RFC 7946
+  // 标准（外环逆时针）GeoJSON 会返回全球 bounds → 缩放被算成极小值，地图挤成细柱。
+  // 这里直接按经纬度包围盒求缩放，方向无关。
+  const walkCoords = (coords: unknown, visit: (lon: number, lat: number) => void) => {
+    if (!Array.isArray(coords)) return
+    if (coords.length === 2 && typeof coords[0] === 'number' && typeof coords[1] === 'number') {
+      visit(coords[0], coords[1])
+      return
+    }
+    for (const c of coords) walkCoords(c, visit)
+  }
 
-  // 收集所有投影点求包围盒中心
+  let minLon = Infinity
+  let maxLon = -Infinity
+  let minLat = Infinity
+  let maxLat = -Infinity
+  features.forEach((f) =>
+    walkCoords(f.geometry?.coordinates, (lon, lat) => {
+      if (lon < minLon) minLon = lon
+      if (lon > maxLon) maxLon = lon
+      if (lat < minLat) minLat = lat
+      if (lat > maxLat) maxLat = lat
+    }),
+  )
+  if (minLon === Infinity) throw new Error('GeoJSON 无有效坐标')
+
+  const unit = geoMercator().scale(1).translate([0, 0])
+  // mercator y 随纬度递减，用四角 min/max 求投影后范围（方向无关）
+  const corners = (
+    [
+      unit([minLon, minLat]),
+      unit([minLon, maxLat]),
+      unit([maxLon, minLat]),
+      unit([maxLon, maxLat]),
+    ] as Array<[number, number] | null>
+  ).filter((c): c is [number, number] => c != null)
+  const px0 = Math.min(...corners.map((c) => c[0]))
+  const px1 = Math.max(...corners.map((c) => c[0]))
+  const py0 = Math.min(...corners.map((c) => c[1]))
+  const py1 = Math.max(...corners.map((c) => c[1]))
+  const k = Math.min(MAP_W / (px1 - px0), MAP_H / (py1 - py0))
+  const projection = geoMercator().scale(k).translate([0, 0])
+
+  // 投影后包围盒中心（居中到原点）
   let minX = Infinity
   let maxX = -Infinity
   let minY = Infinity
   let maxY = -Infinity
-  const walk = (coords: unknown) => {
-    if (!Array.isArray(coords)) return
-    if (coords.length === 2 && typeof coords[0] === 'number' && typeof coords[1] === 'number') {
-      const p = projection(coords as [number, number])
+  features.forEach((f) =>
+    walkCoords(f.geometry?.coordinates, (lon, lat) => {
+      const p = projection([lon, lat])
       if (p) {
         minX = Math.min(minX, p[0]); maxX = Math.max(maxX, p[0])
         minY = Math.min(minY, p[1]); maxY = Math.max(maxY, p[1])
       }
-      return
-    }
-    for (const c of coords) walk(c)
-  }
-  features.forEach((f) => walk(f.geometry?.coordinates))
+    }),
+  )
   const cx = (minX + maxX) / 2 || 0
   const cy = (minY + maxY) / 2 || 0
 
@@ -112,10 +149,19 @@ export function buildCityGeo(fc: unknown): CityGeoData {
     const polygons = Array.isArray(coords) && f.geometry?.type === 'Polygon' ? [coords] : (coords as unknown[]) ?? []
 
     const parts: THREE.ExtrudeGeometry[] = []
+    let sumX = 0
+    let sumZ = 0
+    let sumN = 0
     for (const poly of polygons) {
       if (!Array.isArray(poly) || poly.length === 0) continue
       const outer = projectRing(poly[0] as Ring, projection, cx, cy)
       if (outer.length < 3) continue
+      // 区县中心 = 外环投影点算术平均（geoCentroid 受环方向影响不可用）
+      for (const v of outer) {
+        sumX += v.x
+        sumZ += v.y
+        sumN++
+      }
       const shape = new THREE.Shape(outer)
       for (let hi = 1; hi < poly.length; hi++) {
         const hole = projectRing(poly[hi] as Ring, projection, cx, cy)
@@ -139,8 +185,8 @@ export function buildCityGeo(fc: unknown): CityGeoData {
     const count = districtGeo.attributes.position.count
     districtGeo.setAttribute('district', new THREE.BufferAttribute(new Float32Array(count).fill(i), 1))
 
-    const cll = geoCentroid(f as never)
-    const cp = projection(cll as [number, number]) ?? [cx, cy]
+    const avgX = sumN ? sumX / sumN : 0
+    const avgZ = sumN ? sumZ / sumN : 0
 
     const t = (gdp - minGdp) / (maxGdp - minGdp)
     const color = new THREE.Color().lerpColors(COLOR_LOW, COLOR_HIGH, t)
@@ -148,8 +194,8 @@ export function buildCityGeo(fc: unknown): CityGeoData {
     infos.push({
       name,
       index: i,
-      centroid: new THREE.Vector3(cp[0] - cx, h + 1.2, cy - cp[1]),
-      base: new THREE.Vector3(cp[0] - cx, 0.2, cy - cp[1]),
+      centroid: new THREE.Vector3(avgX, h + 1.2, avgZ),
+      base: new THREE.Vector3(avgX, 0.2, avgZ),
       height: h,
       color,
       start: vertexCursor,

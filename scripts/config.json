@@ -1,0 +1,20 @@
+{
+  "source": {
+    "name": "中国政府采购网-中央公告",
+    "list_url": "https://www.ccgp.gov.cn/cggg/zygg/",
+    "encoding": "utf-8",
+    "pages": 1,
+    "delay_seconds": 1.0,
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+    },
+    "retries": 2,
+    "timeout": 20
+  },
+  "output": {
+    "dir": "output",
+    "csv": "政采公告_中央.csv",
+    "xlsx": "政采公告_中央.xlsx",
+    "summary": "采集摘要.txt"
+  }
+}

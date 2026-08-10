@@ -1,0 +1,11 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Node
+node_modules/
+dist/
+
+# 采集产物（可再生成；演示数据以 crawler-showcase/public/events.json 为准）
+output/

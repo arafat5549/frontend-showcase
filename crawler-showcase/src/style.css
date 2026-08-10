@@ -1,0 +1,360 @@
+/* ═══════════════════════════════════════════════════════════
+ * Win11 桌面仿真风格（Fluent 规范：Mica 材质 / 圆角 / Segoe UI）
+ * 场景还原：PowerShell 跑爬虫 + Excel 打开报表 + 任务栏
+ * ═══════════════════════════════════════════════════════════ */
+:root {
+  --win-bg: #f3f3f3;
+  --win-bg-hover: #e5e5e5;
+  --win-accent: #0078d4;
+  --win-accent-hover: #106ebe;
+  --win-border: #d9d9d9;
+  --win-text: #1b1b1b;
+  --win-text-dim: #6e6e6e;
+  --excel-green: #107c41;
+  --ps-bg: #0c0c0c;
+  --ps-text: #cccccc;
+  --ps-prompt: #4fc1ff;
+  --mono: Consolas, "Cascadia Mono", "Courier New", monospace;
+  --ui: "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body { height: 100%; }
+
+body {
+  overflow: hidden;
+  font-family: var(--ui);
+  font-size: 14px;
+  color: var(--win-text);
+  background: #0a2a52;
+}
+
+/* ── Win11 桌面：本机壁纸（src/assets/wallpaper.jpg，渐变作加载前兜底） ── */
+.desktop {
+  position: relative;
+  height: 100vh;
+  overflow: hidden;
+  background:
+    radial-gradient(1100px 500px at 18% -8%, rgba(94, 170, 255, 0.55), transparent 60%),
+    radial-gradient(900px 460px at 85% 12%, rgba(52, 120, 246, 0.42), transparent 55%),
+    radial-gradient(800px 500px at 30% 100%, rgba(24, 66, 140, 0.5), transparent 60%),
+    radial-gradient(700px 420px at 95% 90%, rgba(40, 96, 190, 0.45), transparent 55%),
+    linear-gradient(160deg, #164a8e 0%, #0c2f63 45%, #071d42 100%);
+  background-size: cover;
+  background-position: center;
+}
+/* 极淡暗化：保证窗口/任务栏对比度 */
+.desktop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.12);
+  pointer-events: none;
+}
+
+/* ════════════ Win11 窗口 ════════════ */
+.win-window {
+  position: absolute;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.14);
+  border-radius: 8px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.win-titlebar {
+  height: 32px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 12px;
+  background: var(--win-bg);
+  user-select: none;
+}
+.win-icon { display: flex; color: #444; }
+.win-title { font-size: 12px; color: var(--win-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.win-btns { margin-left: auto; display: flex; height: 100%; }
+.win-btns button {
+  width: 46px;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: #444;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+  border-radius: 0;
+}
+.win-btns button:hover { background: var(--win-bg-hover); }
+.win-btns button.win-close:hover { background: #c42b1c; color: #fff; }
+
+/* ── PowerShell 终端窗口 ── */
+.term-win {
+  left: 3%;
+  top: 12%;
+  width: 55%;
+  height: 58%;
+  z-index: 2;
+}
+.ps-content {
+  flex: 1;
+  background: var(--ps-bg);
+  color: var(--ps-text);
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.7;
+  padding: 12px 14px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+.ps-line { white-space: pre-wrap; word-break: break-all; }
+.ps-prompt { color: var(--ps-prompt); }
+.ps-cmd { color: #ffffff; }
+.ps-line .ok, .ps-line.done-line { color: #7ce38b; }
+.ps-line .warn, .ps-line.warn-line { color: #ffc46b; }
+.ps-line .t-type { color: #ffc46b; }
+.ps-line.dim2 { color: #9c9c9c; }
+.ps-line.err-line { color: #ff8f8f; }
+.ps-cursor {
+  display: inline-block;
+  width: 8px;
+  height: 14px;
+  background: #fff;
+  vertical-align: -2px;
+  animation: blink 1s steps(1) infinite;
+}
+@keyframes blink { 50% { opacity: 0; } }
+.ps-line.flash { animation: ps-in 0.35s ease-out; }
+@keyframes ps-in { from { background: rgba(79, 193, 255, 0.25); } to { background: transparent; } }
+
+/* ── Excel 报表窗口 ── */
+.excel-win {
+  right: 2.5%;
+  top: 20%;
+  width: 46%;
+  height: 66%;
+  z-index: 1;
+}
+.xls-namebar {
+  height: 34px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--win-border);
+  background: #fafafa;
+  font-size: 12px;
+}
+.xls-file { font-weight: 600; }
+.xls-autosave { color: var(--win-text-dim); font-size: 11px; margin-left: auto; display: flex; align-items: center; gap: 5px; }
+.xls-autosave::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #5cb85c; }
+
+.xls-wrap { flex: 1; overflow: auto; background: #fff; }
+table.xls { width: 100%; border-collapse: collapse; font-size: 12px; font-family: "Segoe UI", "Microsoft YaHei", sans-serif; }
+table.xls th, table.xls td {
+  border: 1px solid #e8e8e8;
+  padding: 4px 8px;
+  text-align: left;
+  white-space: nowrap;
+}
+table.xls th {
+  position: sticky;
+  top: 0;
+  background: #f3f3f3;
+  font-weight: 600;
+  color: #333;
+  z-index: 1;
+}
+table.xls td.xls-rowhead, table.xls th.xls-rowhead {
+  background: #f5f5f5;
+  color: #9a9a9a;
+  text-align: center;
+  width: 40px;
+  min-width: 40px;
+  position: sticky;
+  left: 0;
+}
+table.xls th.xls-rowhead { z-index: 2; }
+table.xls td.xls-rowhead { z-index: 1; }
+table.xls td.t-title { max-width: 300px; }
+table.xls td.t-title .title-text {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+table.xls td.t-link a { color: #0563c1; text-decoration: none; }
+table.xls td.t-link a:hover { text-decoration: underline; }
+table.xls td .type-badge { color: #107c41; font-weight: 600; }
+table.xls tr.xls-flash { animation: xls-in 0.6s ease-out; }
+@keyframes xls-in {
+  0% { background: rgba(16, 124, 65, 0.18); }
+  100% { background: transparent; }
+}
+
+.xls-statusbar {
+  flex: none;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  border-top: 1px solid var(--win-border);
+  background: var(--win-bg);
+  font-size: 11px;
+  color: var(--win-text-dim);
+  gap: 8px;
+}
+.xls-ready { display: flex; align-items: center; gap: 5px; }
+.xls-ready::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #5cb85c; }
+.xls-count { margin-left: auto; }
+
+.xls-sheetbar {
+  flex: none;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 10px;
+  border-top: 1px solid var(--win-border);
+  background: #fafafa;
+}
+.xls-sheet {
+  font-size: 11.5px;
+  color: var(--win-text-dim);
+  padding: 3px 12px;
+  border-radius: 4px 4px 0 0;
+  border: 1px solid transparent;
+  cursor: default;
+}
+.xls-sheet.active {
+  color: var(--win-text);
+  background: #fff;
+  border-color: var(--win-border);
+  border-bottom-color: #fff;
+  margin-bottom: -1px;
+}
+.xls-sheet-add { color: var(--win-text-dim); font-size: 14px; padding: 0 6px; }
+
+/* ════════════ 控制面板（顶部悬浮） ════════════ */
+.dock {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(245, 245, 245, 0.82);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.dock button {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--win-text);
+  font-family: var(--ui);
+  font-size: 13px;
+  padding: 5px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.dock button:hover:not(:disabled) { background: rgba(0, 0, 0, 0.06); }
+.dock button:disabled { opacity: 0.45; cursor: default; }
+.dock button.dock-primary { background: var(--win-accent); color: #fff; }
+.dock button.dock-primary:hover:not(:disabled) { background: var(--win-accent-hover); }
+.dock .dock-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--win-text-dim);
+  font-size: 12px;
+}
+.dock .dock-group button { padding: 4px 9px; font-size: 12px; }
+.dock .dock-group button.active { background: var(--win-accent); color: #fff; }
+.dock .dock-group button.active:hover:not(:disabled) { background: var(--win-accent-hover); }
+.dock-progress { color: var(--win-text-dim); font-size: 12px; margin-left: 4px; white-space: nowrap; }
+
+/* ════════════ Win11 任务栏 ════════════ */
+.taskbar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 48px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+  background: rgba(243, 243, 243, 0.72);
+  backdrop-filter: blur(24px) saturate(1.5);
+  -webkit-backdrop-filter: blur(24px) saturate(1.5);
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+.tb-left, .tb-right { display: flex; align-items: center; gap: 2px; }
+.tb-btn {
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  color: #2b2b2b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+}
+.tb-btn:hover { background: rgba(0, 0, 0, 0.06); }
+.tb-btn.tb-active::after {
+  content: "";
+  position: absolute;
+  bottom: 2px;
+  width: 6px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--win-accent);
+}
+.tb-active { position: relative; }
+.tb-right { gap: 8px; color: #2b2b2b; }
+.tb-clock {
+  font-size: 11px;
+  line-height: 1.35;
+  text-align: right;
+  color: #2b2b2b;
+  padding: 0 4px;
+}
+
+/* ════════════ 响应式 ════════════ */
+@media (max-width: 900px) {
+  .term-win, .excel-win {
+    left: 2%;
+    right: 2%;
+    width: 96%;
+  }
+  .term-win { top: 76px; height: 40%; }
+  .excel-win { top: 52%; height: 34%; }
+  .dock { top: 8px; width: 96%; }
+  .dock-progress { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

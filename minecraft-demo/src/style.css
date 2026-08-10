@@ -29,150 +29,187 @@ body {
 .viewport {
   position: absolute;
   inset: 0;
+  outline: none;
 }
 .viewport canvas {
   display: block;
 }
 
-/* 顶部状态条（Minecraft 风格毛玻璃） */
-.statusbar {
+/* ── 准星 ── */
+.crosshair {
   position: absolute;
-  top: 10px;
+  top: 50%;
   left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 6px 16px;
-  background: rgba(0, 0, 0, 0.55);
-  border: 2px solid rgba(255, 255, 255, 0.18);
+  transform: translate(-50%, -50%);
+  width: 20px;
+  height: 20px;
+  z-index: 10;
+  pointer-events: none;
+}
+.ch-h,
+.ch-v {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
+}
+.ch-h {
+  left: 2px;
+  right: 2px;
+  top: 9px;
+  height: 2px;
+}
+.ch-v {
+  top: 2px;
+  bottom: 2px;
+  left: 9px;
+  width: 2px;
+}
+
+/* ── HUD 面板 ── */
+.hud-top-left,
+.hud-top-right {
+  position: absolute;
+  top: 14px;
+  z-index: 10;
+  padding: 8px 14px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 6px;
   color: #fff;
   font-size: 13px;
   text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.8);
-  z-index: 5;
-  white-space: nowrap;
+  pointer-events: none;
 }
-.sb-title {
-  font-weight: 600;
+.hud-top-left {
+  left: 14px;
+}
+.hud-top-right {
+  right: 14px;
+  text-align: right;
+}
+.hud-line {
+  line-height: 1.7;
+}
+.hud-line b {
   color: #a8f0a0;
 }
-.sb-phase {
+.hud-air {
+  color: #ffd24a;
+  margin-left: 4px;
+}
+.mono {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: #8ad4ff;
+}
+
+/* ── 左下操作提示 ── */
+.hud-controls {
+  position: absolute;
+  left: 14px;
+  bottom: 96px;
+  z-index: 10;
+  padding: 10px 14px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 6px;
+  color: #cfd8cf;
+  font-size: 12.5px;
+  line-height: 1.9;
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+}
+.hud-controls b {
   color: #ffd24a;
 }
-.sb-progress {
-  color: #8ad4ff;
-  font-family: var(--mono);
-}
 
-/* 控制条 */
-.dock {
+/* ── 底部方块栏 ── */
+.hotbar {
   position: absolute;
-  bottom: 56px;
+  bottom: 18px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 14px;
+  gap: 6px;
+  z-index: 10;
+  padding: 6px 8px;
   background: rgba(0, 0, 0, 0.6);
-  border: 2px solid rgba(255, 255, 255, 0.14);
+  border: 2px solid rgba(255, 255, 255, 0.18);
   border-radius: 8px;
-  z-index: 5;
-  flex-wrap: wrap;
-  justify-content: center;
 }
-.dock button {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  color: #fff;
-  font-family: var(--ui);
-  font-size: 13px;
-  padding: 5px 12px;
+.slot {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  border: 2px solid rgba(255, 255, 255, 0.25);
   border-radius: 4px;
-  cursor: pointer;
-  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.7);
-}
-.dock button:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.24);
-}
-.dock button:disabled {
-  opacity: 0.4;
-  cursor: default;
-}
-.dock button.primary {
-  background: #3aa03a;
-  border-color: #5cc45c;
-}
-.dock .group {
+  background: rgba(255, 255, 255, 0.06);
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 3px;
-  color: #cfd8cf;
-  font-size: 12px;
+  justify-content: center;
+  gap: 2px;
+  transition: border-color 0.15s, transform 0.15s;
 }
-.dock .group button {
-  padding: 4px 9px;
-  font-size: 12px;
+.slot.active {
+  border-color: #ffd24a;
+  transform: translateY(-4px);
+  background: rgba(255, 210, 74, 0.12);
 }
-.dock .group button.active {
-  background: #ffd24a;
-  color: #2a2a2a;
-  text-shadow: none;
+.slot-color {
+  display: block;
+  width: 26px;
+  height: 26px;
+  border: 1px solid rgba(0, 0, 0, 0.4);
+  border-radius: 3px;
+  box-shadow: inset -3px -3px 0 rgba(0, 0, 0, 0.18);
 }
-
-/* 底部字幕（聊天栏风格） */
-.subtitle {
+.slot span {
+  color: #ffd24a;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+}
+.slot em {
   position: absolute;
-  bottom: 12px;
+  bottom: -20px;
   left: 50%;
   transform: translateX(-50%);
-  max-width: 80%;
-  padding: 8px 16px;
-  background: rgba(0, 0, 0, 0.72);
-  border-radius: 6px;
+  font-style: normal;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 11px;
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.8);
+  white-space: nowrap;
+  display: none;
+}
+.slot.active em {
+  display: block;
+}
+
+.loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: #fff;
   font-size: 15px;
-  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.9);
-  opacity: 0;
-  transition: opacity 0.25s;
-  z-index: 5;
-  text-align: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.subtitle.show {
-  opacity: 1;
-}
-.sub-name {
-  color: #ffd24a;
-  font-weight: 600;
-}
-
-.hint {
-  position: absolute;
-  top: 10px;
-  right: 14px;
-  color: rgba(255, 255, 255, 0.65);
-  font-size: 12px;
-  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.8);
-  z-index: 4;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 50;
 }
 
 @media (max-width: 720px) {
-  .statusbar {
-    top: 8px;
-    font-size: 12px;
-    gap: 8px;
-    padding: 5px 10px;
-  }
-  .dock {
-    bottom: 48px;
-    padding: 6px 8px;
-  }
-  .hint {
+  .hud-controls {
     display: none;
+  }
+  .hud-top-left,
+  .hud-top-right {
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+  .slot {
+    width: 44px;
+    height: 44px;
   }
 }
 
@@ -182,5 +219,195 @@ body {
   *::after {
     animation: none !important;
     transition: none !important;
+  }
+}
+
+/* ════════════ 主菜单（MC 质感，复刻 TPMC UiRoot） ════════════ */
+.menu {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 26px;
+  background:
+    radial-gradient(900px 480px at 20% -10%, rgba(90, 160, 255, 0.35), transparent 60%),
+    radial-gradient(800px 420px at 85% 15%, rgba(60, 130, 240, 0.28), transparent 55%),
+    linear-gradient(165deg, #12487e 0%, #0a2c58 50%, #071d42 100%);
+  overflow: hidden;
+  font-family: var(--ui);
+}
+.menu::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(to bottom, rgba(255, 255, 255, 0) 0 2px, rgba(255, 255, 255, 0.02) 2px 3px);
+  pointer-events: none;
+}
+
+.menu-title {
+  text-align: center;
+  user-select: none;
+  z-index: 2;
+}
+.menu-title h1 {
+  font-size: 64px;
+  font-weight: 900;
+  color: #fff;
+  text-shadow:
+    0 4px 0 #3a3a3a,
+    0 6px 0 #2a2a2a,
+    0 8px 18px rgba(0, 0, 0, 0.6);
+  letter-spacing: 8px;
+  line-height: 1.1;
+}
+.menu-title p {
+  margin-top: 10px;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 14px;
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.6);
+}
+
+.menu-body {
+  display: flex;
+  gap: 28px;
+  align-items: stretch;
+  z-index: 2;
+}
+
+/* 皮肤预览 */
+.menu-preview {
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.skin-preview {
+  height: 300px;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  overflow: hidden;
+  background: #9ad0f5;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+}
+.skin-preview canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.anim-btns {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
+.anim-btns button {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #fff;
+  font-size: 12.5px;
+  padding: 5px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: var(--ui);
+}
+.anim-btns button:hover {
+  background: rgba(255, 255, 255, 0.24);
+}
+.anim-btns button.active {
+  background: #ffd24a;
+  color: #2a2a2a;
+  border-color: #ffd24a;
+  font-weight: 600;
+}
+
+/* 皮肤选择卡 */
+.skin-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: center;
+  width: 210px;
+}
+.skin-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 14px 18px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: #fff;
+  cursor: pointer;
+  font-family: var(--ui);
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+}
+.skin-card:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+.skin-card.active {
+  border-color: #ffd24a;
+  background: rgba(255, 210, 74, 0.14);
+  box-shadow: 0 0 16px rgba(255, 210, 74, 0.25);
+}
+.skin-name {
+  font-size: 17px;
+  font-weight: 700;
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.7);
+}
+.skin-desc {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+/* 开始按钮（MC 绿按钮风） */
+.btn-start {
+  z-index: 2;
+  font-family: var(--ui);
+  font-size: 20px;
+  font-weight: 800;
+  color: #fff;
+  padding: 14px 46px;
+  background: linear-gradient(180deg, #62b84a 0%, #4a9a36 100%);
+  border: 2px solid #2e6b20;
+  border-radius: 6px;
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.25),
+    0 6px 14px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  letter-spacing: 2px;
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.4);
+}
+.btn-start:hover {
+  background: linear-gradient(180deg, #70c856 0%, #54aa3c 100%);
+  transform: translateY(-1px);
+}
+
+.menu-foot {
+  z-index: 2;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 12.5px;
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.7);
+}
+
+@media (max-width: 760px) {
+  .menu-title h1 {
+    font-size: 40px;
+  }
+  .menu-body {
+    flex-direction: column;
+  }
+  .menu-preview {
+    width: 260px;
+  }
+  .skin-preview {
+    height: 240px;
+  }
+  .skin-cards {
+    flex-direction: row;
+    width: auto;
   }
 }

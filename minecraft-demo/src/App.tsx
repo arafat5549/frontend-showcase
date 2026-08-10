@@ -1,143 +1,105 @@
 import { useEffect, useRef, useState } from 'react'
-import { createWorld } from './world'
-import { Sim, type Phase } from './sim'
+import { createGame, type HudState } from './game'
+import { BLOCK_TYPES } from './interact'
+import Menu from './Menu'
+import type { SkinId } from './player'
 import './style.css'
 
 export default function App() {
   const mountRef = useRef<HTMLDivElement>(null)
-  const simRef = useRef<Sim | null>(null)
-  const [subtitle, setSubtitle] = useState<string | null>(null)
-  const [phase, setPhase] = useState<Phase>('build')
-  const [playing, setPlaying] = useState(true)
-  const [speed, setSpeedState] = useState(1)
-  const [progress, setProgress] = useState(0)
-  const [done, setDone] = useState(false)
+  const gameRef = useRef<Awaited<ReturnType<typeof createGame>> | null>(null)
+  const [phase, setPhase] = useState<'menu' | 'game'>('menu')
+  const [skin, setSkin] = useState<SkinId>('steve')
+  const [hud, setHud] = useState<HudState | null>(null)
+  const [ready, setReady] = useState(false)
 
   useEffect(() => {
+    if (phase !== 'game') return
     const mount = mountRef.current
     if (!mount) return
-    const world = createWorld(mount)
-    const sim = new Sim(world, {
-      onSubtitle: setSubtitle,
-      onPhase: (p) => {
-        setPhase(p)
-        if (p === 'done') setDone(true)
-      },
-      onProgress: (t) => setProgress(t),
-      onDone: () => setDone(true),
+    let disposed = false
+    createGame(mount, setHud, skin).then((game) => {
+      if (disposed) {
+        game.dispose()
+        return
+      }
+      gameRef.current = game
+      setReady(true)
     })
-    simRef.current = sim
-
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      sim.jumpTo('done')
-    }
-
-    let raf = 0
-    let last = performance.now()
-    const loop = (now: number) => {
-      const dt = Math.min((now - last) / 1000, 0.05)
-      last = now
-      sim.update(dt * sim.speed)
-      world.controls.update()
-      world.renderer.render(world.scene, world.camera)
-      raf = requestAnimationFrame(loop)
-    }
-    raf = requestAnimationFrame(loop)
     return () => {
-      cancelAnimationFrame(raf)
-      world.renderer.dispose()
-      mount.removeChild(world.renderer.domElement)
+      disposed = true
+      gameRef.current?.dispose()
     }
-  }, [])
+  }, [phase, skin])
 
-  const toggle = () => {
-    const sim = simRef.current
-    if (!sim || done) return
-    sim.playing = !sim.playing
-    setPlaying(sim.playing)
+  if (phase === 'menu') {
+    return (
+      <Menu
+        onStart={(s) => {
+          setSkin(s)
+          setPhase('game')
+        }}
+      />
+    )
   }
-  const replay = () => {
-    const sim = simRef.current
-    if (!sim) return
-    setDone(false)
-    sim.reset()
-    sim.playing = true
-    setPlaying(true)
-    setSpeedState(1)
-    sim.speed = 1
-  }
-  const setSpeed = (v: number) => {
-    const sim = simRef.current
-    if (!sim) return
-    sim.speed = v
-    setSpeedState(v)
-  }
-  const jump = (p: Phase) => {
-    const sim = simRef.current
-    if (!sim) return
-    setDone(false)
-    sim.playing = true
-    setPlaying(true)
-    sim.jumpTo(p)
-  }
-  const skip = () => {
-    const sim = simRef.current
-    if (!sim) return
-    setDone(false)
-    sim.jumpTo('done')
-    setPhase('done')
-    setDone(true)
-  }
-
-  const pct = Math.min(100, Math.round((progress / 33.7) * 100))
 
   return (
     <div className="app">
       <div className="viewport" ref={mountRef} />
 
-      {/* 顶部状态条 */}
-      <div className="statusbar">
-        <span className="sb-title">方块世界 · 建造与手表</span>
-        <span className="sb-phase">
-          {phase === 'build' ? '■ 建造中' : phase === 'watch' ? '◆ 玩手表' : '✔ 完成'}
-        </span>
-        <span className="sb-progress">{pct}%</span>
+      {/* 准星 */}
+      <div className="crosshair">
+        <span className="ch-h" />
+        <span className="ch-v" />
       </div>
 
-      {/* 控制条 */}
-      <div className="dock">
-        <button className="primary" onClick={toggle} disabled={done}>
-          {playing ? '⏸ 暂停' : '▶ 继续'}
-        </button>
-        <button onClick={replay} disabled={!done && progress === 0}>↺ 重播</button>
-        <span className="group">
-          速度
-          {[1, 2, 4].map((s) => (
-            <button key={s} className={speed === s ? 'active' : ''} onClick={() => setSpeed(s)}>
-              {s}x
-            </button>
-          ))}
-        </span>
-        <span className="group">
-          场景
-          <button className={phase === 'build' && progress < 23.5 ? 'active' : ''} onClick={() => jump('build')}>建造</button>
-          <button className={phase === 'watch' ? 'active' : ''} onClick={() => jump('watch')}>玩手表</button>
-        </span>
-        <button onClick={skip} disabled={done}>跳过 → 看结果</button>
-      </div>
-
-      {/* 底部字幕（Minecraft 聊天栏风格） */}
-      <div className={'subtitle' + (subtitle ? ' show' : '')}>
-        {subtitle ? (
+      {/* 左上：群系 / 时段 */}
+      <div className="hud-top-left">
+        {hud ? (
           <>
-            <span className="sub-name">工地播报</span> {subtitle}
+            <div className="hud-line">
+              群系：<b>{hud.biome}</b>
+            </div>
+            <div className="hud-line">
+              时段：<b>{hud.timeLabel}</b>
+              {!hud.grounded && <span className="hud-air"> 空中</span>}
+            </div>
           </>
         ) : (
-          ' '
+          <div className="hud-line">加载世界中…</div>
         )}
       </div>
 
-      <div className="hint">拖拽旋转视角 · 滚轮缩放</div>
+      {/* 右上：坐标 */}
+      <div className="hud-top-right">
+        {hud && (
+          <div className="hud-line mono">
+            XYZ {hud.pos.x} / {hud.pos.y} / {hud.pos.z}
+          </div>
+        )}
+      </div>
+
+      {/* 左下：操作提示 */}
+      <div className="hud-controls">
+        <div><b>WASD</b> 移动</div>
+        <div><b>空格</b> 跳跃 · <b>Shift</b> 奔跑</div>
+        <div><b>按住左键</b> 拖拽视角 · <b>滚轮</b> 缩放</div>
+        <div><b>左键点击</b> 挖掘 · <b>右键</b> 放置</div>
+        <div><b>1-5</b> 切换方块</div>
+      </div>
+
+      {/* 底部：方块选择栏 */}
+      <div className="hotbar">
+        {BLOCK_TYPES.map((b) => (
+          <div key={b.id} className={'slot' + (hud?.selectedId === b.id ? ' active' : '')}>
+            <i className="slot-color" style={{ background: '#' + b.color.toString(16).padStart(6, '0') }} />
+            <span>{b.id}</span>
+            <em>{b.name}</em>
+          </div>
+        ))}
+      </div>
+
+      {!ready && <div className="loading">加载世界中…</div>}
     </div>
   )
 }

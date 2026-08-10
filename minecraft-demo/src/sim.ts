@@ -113,16 +113,31 @@ export class Sim {
     }
   }
 
-  /* ── 建造目标点：块外侧（房子外圈方向） ── */
+  /* ── 建造目标点：块外侧（房子外圈方向）；内部块（如屋顶）沿射线外推出禁区 ── */
   private standPoint(b: Block): [number, number] {
-    const cx = 3
-    const cz = 2
-    let dx = b.x + 0.5 - cx
-    let dz = b.z + 0.5 - cz
+    const cx = b.x + 0.5
+    const cz = b.z + 0.5
+    let dx = cx - 3
+    let dz = cz - 2
     const len = Math.hypot(dx, dz) || 1
     dx /= len
     dz /= len
-    return [b.x + 0.5 + dx * 1.45, b.z + 0.5 + dz * 1.45]
+    let sx = cx + dx * 1.45
+    let sz = cz + dz * 1.45
+    if (Sim.pointInRect(sx, sz)) {
+      // 射线出矩形参数：沿 d 方向先穿出的边界
+      const r = Sim.RECT
+      let tx = Infinity
+      let tz = Infinity
+      if (dx > 1e-6) tx = (r.x1 - cx) / dx
+      else if (dx < -1e-6) tx = (r.x0 - cx) / dx
+      if (dz > 1e-6) tz = (r.z1 - cz) / dz
+      else if (dz < -1e-6) tz = (r.z0 - cz) / dz
+      const texit = Math.min(tx, tz)
+      sx = cx + dx * (texit + 0.7)
+      sz = cz + dz * (texit + 0.7)
+    }
+    return [sx, sz]
   }
 
   /* ── 行走路径绕行：直线穿过房子（禁区矩形）时走角点 ── */
@@ -312,13 +327,14 @@ export class Sim {
         }
         break
       case 'approach': {
-        // B 走向 A 面前（绕行房子）
-        if (!this.pathB.length) this.computePath(3.0, -0.4, B!)
+        // B 绕行走来，与 A 并排（A 在 (3, -1.6)），避免面对面伸手插进身体
+        if (!this.pathB.length) this.computePath(4.4, -1.6, B!)
         const [tx, tz] = this.pathB[0]
         const moving = walkTo(B!, tx, tz, dt, 2.6)
         if (!moving) {
           this.pathB.shift()
           if (!this.pathB.length) {
+            B!.group.rotation.y = 0 // 与 A 同向面向房子
             this.wState = 'bump'
             this.wTimer = 0
             this.bumped = false
@@ -332,9 +348,7 @@ export class Sim {
           this.ev.onSubtitle('叮！碰一碰，加好友！')
         }
         const p = Math.min(1, this.wTimer / 0.9)
-        this.watchLift = 1
-        // B 面向 A（-z）
-        B!.group.rotation.y = Math.PI + (1 - p) * 0.1
+        this.watchLift = 1 // 两人并排，各自抬起左手腕
         if (this.watchFace) {
           const mat = this.watchFace.material as THREE.MeshLambertMaterial
           mat.emissive.setHex(p > 0.55 ? 0x6dff7a : 0x4fc3ff)
@@ -371,7 +385,7 @@ export class Sim {
         break
     }
     animatePlayer(A, dt, 0, this.watchLift, this.jump)
-    if (B) animatePlayer(B, dt, this.wState === 'bump' ? 1 : 0, 0, this.jump)
+    if (B) animatePlayer(B, dt, 0, this.wState === 'bump' ? 1 : 0, this.jump)
   }
 
   /* ── 主循环（App 每帧调用，dt 为已按 speed 缩放的实际增量） ── */
@@ -455,8 +469,8 @@ export class Sim {
       this.finishBuild()
       this.wState = 'end'
       this.endLerp = 1
-      this.playerB!.group.position.set(3.0, 0, -0.4)
-      this.playerB!.group.rotation.y = Math.PI
+      this.playerB!.group.position.set(4.4, 0, -1.6)
+      this.playerB!.group.rotation.y = 0
       this.ev.onSubtitle(null)
       this.ev.onPhase('done')
       this.ev.onDone()

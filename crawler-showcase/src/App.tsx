@@ -150,8 +150,10 @@ function TerminalWin({ log, err }: { log: Evt[]; err: string }) {
       <div className="ps-content" aria-live="polite">
         <div className="ps-line">
           <span className="ps-prompt">PS C:\crawler-showcase&gt;</span>
-          <span className="ps-cmd"> python crawler.py --export-events web\public\events.json</span>
+          <span className="ps-cmd"> python crawler.py --export-events events.json</span>
         </div>
+        <div className="ps-line dim2"># 根据真实案例改编：某建材店老板每天手动翻招标网站找商机，漏看即错过投标窗口</div>
+        <div className="ps-line dim2"># 改为爬虫自动采集后，每天打开 Excel 报表即可筛选当天项目（数据实时采集自公开渠道）</div>
         {log.map((e, i) => (
           <PsLine key={i} e={e} />
         ))}
@@ -337,6 +339,7 @@ export default function App() {
       />
       <TerminalWin log={r.log} err={r.err} />
       <ExcelWin rows={r.rows} meta={r.meta} finished={r.finished} />
+      <p className="compliance">根据真实案例改编 · 仅采集公开信息 · 不涉个人信息 · 数据仅供演示</p>
       <Taskbar />
     </div>
   )

@@ -110,8 +110,9 @@ function createVoxelGround(scene: THREE.Scene) {
   const count = N * N
   const sideGeo = new THREE.BoxGeometry(1, 0.5, 1)
   const topGeo = new THREE.BoxGeometry(1, 0.14, 1)
-  const sideMat = new THREE.MeshLambertMaterial({ vertexColors: true })
-  const topMat = new THREE.MeshLambertMaterial({ vertexColors: true })
+  // 注意：不能用 vertexColors:true（会吞掉 instanceColor 导致黑色）；默认白色材质 × instanceColor
+  const sideMat = new THREE.MeshLambertMaterial()
+  const topMat = new THREE.MeshLambertMaterial()
   const sides = new THREE.InstancedMesh(sideGeo, sideMat, count)
   const tops = new THREE.InstancedMesh(topGeo, topMat, count)
   const cSide = new THREE.Color()

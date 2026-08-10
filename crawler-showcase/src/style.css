@@ -287,6 +287,18 @@ table.xls tr.xls-flash { animation: xls-in 0.6s ease-out; }
 .dock .dock-group button.active:hover:not(:disabled) { background: var(--win-accent-hover); }
 .dock-progress { color: var(--win-text-dim); font-size: 12px; margin-left: 4px; white-space: nowrap; }
 
+/* ── 桌面合规标识（右下角，任务栏上方） ── */
+.compliance {
+  position: absolute;
+  right: 14px;
+  bottom: 56px;
+  z-index: 15;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 11px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+  user-select: none;
+}
+
 /* ════════════ Win11 任务栏 ════════════ */
 .taskbar {
   position: absolute;

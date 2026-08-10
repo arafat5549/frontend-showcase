@@ -6,6 +6,9 @@
  *
  * 色板设计意图（v2 降亮）：全区块/飞线/粒子/网格从高亮青降为暗青蓝阶（主色 #1ba8c4 量级），
  * hover 用 #46c8d8、选中用暖金 #e3ad52 作唯一高亮点缀；灯光整体降档，避免区块过曝发白。
+ *
+ * 性能取舍：hover/选中改增量顶点更新（只遍历涉及的区县区间，避免 17.7 万顶点全量重建）；
+ * DPR 上限 1.5 + bloom 降分辨率（1024×576），降低高分屏全屏辉光开销。
  */
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
@@ -180,6 +183,11 @@ function CityWorld({ geo, autoRotate, bloomStrength, showParticles, showFlyLines
   const [selected, setSelected] = useState<number | null>(null)
   const geom = geo.geometry
 
+  // 性能：增量更新 hover/选中 —— 用 ref 记录上次 hover/selected 索引，
+  // 只遍历涉及的区县顶点区间，避免每次切换都全量重建 17.7 万顶点/颜色。
+  const lastHoverRef = useRef<number | null>(null)
+  const lastSelectRef = useRef<number | null>(null)
+
   const material = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
@@ -192,34 +200,53 @@ function CityWorld({ geo, autoRotate, bloomStrength, showParticles, showFlyLines
     [],
   )
 
-  // hover / 选中：抬高 + 变色（基于顶点区间）
+  // hover / 选中：抬高 + 变色（增量式，基于顶点区间；初始颜色/位置在构建时已写入）
   useLayoutEffect(() => {
     const posAttr = geom.attributes.position as THREE.BufferAttribute
     const colorAttr = geom.attributes.color as THREE.BufferAttribute
     const pos = posAttr.array as Float32Array
-    geo.basePositions.forEach((v, i) => {
-      pos[i] = v
-    })
-    if (selected != null && geo.districts[selected]) {
-      const info = geo.districts[selected]
-      for (let i = info.start * 3 + 1; i < info.end * 3 + 1; i += 3) pos[i] += LIFT
-    }
-    posAttr.needsUpdate = true
-    geom.computeBoundingSphere()
+    const colors = colorAttr.array as Float32Array
+    const prevHover = lastHoverRef.current
+    const prevSelect = lastSelectRef.current
 
-    const colors = geo.baseColors.slice()
-    for (const d of geo.districts) {
-      let target = d.color
-      if (hover === d.index) target = COLOR_HOVER
-      if (selected === d.index) target = COLOR_SELECT
-      for (let v = d.start; v < d.end; v++) {
-        colors[v * 3] = target.r
-        colors[v * 3 + 1] = target.g
-        colors[v * 3 + 2] = target.b
+    // 位置：仅 selected 变化时，把"上次 selected"区县顶点 y 减回 LIFT、"新 selected"加上 LIFT
+    if (prevSelect !== selected) {
+      if (prevSelect != null && geo.districts[prevSelect]) {
+        const info = geo.districts[prevSelect]
+        for (let v = info.start; v < info.end; v++) pos[v * 3 + 1] -= LIFT
       }
+      if (selected != null && geo.districts[selected]) {
+        const info = geo.districts[selected]
+        for (let v = info.start; v < info.end; v++) pos[v * 3 + 1] += LIFT
+      }
+      posAttr.needsUpdate = true
     }
-    ;(colorAttr.array as Float32Array).set(colors)
-    colorAttr.needsUpdate = true
+
+    // 颜色：只重写"上次/本次 hover、上次/本次 selected"涉及的区县区间（去重后最多 4 个），
+    // 其余区县颜色保持不动；被替换掉的区县恢复为 d.color
+    const affected = new Set<number>()
+    if (prevHover != null) affected.add(prevHover)
+    if (prevSelect != null) affected.add(prevSelect)
+    if (hover != null) affected.add(hover)
+    if (selected != null) affected.add(selected)
+    if (affected.size > 0) {
+      for (const idx of affected) {
+        const info = geo.districts[idx]
+        if (!info) continue
+        let target = info.color
+        if (selected === idx) target = COLOR_SELECT
+        else if (hover === idx) target = COLOR_HOVER
+        for (let v = info.start; v < info.end; v++) {
+          colors[v * 3] = target.r
+          colors[v * 3 + 1] = target.g
+          colors[v * 3 + 2] = target.b
+        }
+      }
+      colorAttr.needsUpdate = true
+    }
+
+    lastHoverRef.current = hover
+    lastSelectRef.current = selected
   }, [hover, selected, geom, geo])
 
   const districtAt = (e: ThreeEvent<MouseEvent>): number | null => {
@@ -290,7 +317,7 @@ function CityWorld({ geo, autoRotate, bloomStrength, showParticles, showFlyLines
 
       {bloomStrength != null && bloomStrength > 0 && (
         <Effects renderIndex={1}>
-          <unrealBloomPass args={[new THREE.Vector2(1600, 900), bloomStrength, 0.8, 0.12]} />
+          <unrealBloomPass args={[new THREE.Vector2(1024, 576), bloomStrength, 0.8, 0.12]} />
         </Effects>
       )}
     </>
@@ -323,9 +350,9 @@ export function Scene({ className, onSelect, ...rest }: SceneProps) {
 
   return (
     <div className={className ?? 'scene-fill'}>
-      <Canvas
-        dpr={[1, 2]}
-        camera={{ position: cameraPosition ?? [0, 85, 140], fov: 50, near: 1, far: 2000 }}
+        <Canvas
+          dpr={[1, 1.5]}
+          camera={{ position: cameraPosition ?? [0, 85, 140], fov: 50, near: 1, far: 2000 }}
         gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
         onCreated={({ gl }) => gl.setClearColor('#04080f', 0)}
       >
